@@ -93,4 +93,4 @@ async def get_users():
         users = json.load(f)
     return users
 
-bot.run("Nzk5NzM1OTYwMjU3NTYwNTg4.YAH6Jw.n-gSBBXsf99ESWh2eAtmD8ZrP5Q")
+bot.run("my_token")
