@@ -27,6 +27,7 @@ async def on_ready():
     print(bot.user.id)
     print("Bot is ready")
 
+# Commands
 @bot.command()
 async def balance(ctx):
     user = ctx.author
@@ -73,6 +74,7 @@ async def subtract(ctx, amt: int):
     else:
         await ctx.send("Please input a positive integer")
 
+# Helper methods
 async def open_account(user):
     users = await get_users()
 
