@@ -16,7 +16,7 @@ import os
 # token = configData["token"]
 # prefix = configData["prefix"]
 
-os.chdir("C:\\Users\\Ben\\git-workspace\\Predictions-Bot\\bot")
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 bot = commands.Bot(command_prefix="$")
 
@@ -93,4 +93,4 @@ async def get_users():
         users = json.load(f)
     return users
 
-bot.run("my_token")
+bot.run("Nzk5NzM1OTYwMjU3NTYwNTg4.YAH6Jw.n-gSBBXsf99ESWh2eAtmD8ZrP5Q")
