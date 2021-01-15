@@ -4,19 +4,11 @@ from discord.ext import commands
 import json
 import os
 
-# if os.path.exists(os.getcwd() + "config.json"):
-#     with open("./config.json") as f:
-#         configData = json.load(f)
-# else:
-#     configTemplate = { "token": "", "prefix": "$"}
-
-#     with open(os.getcwd() + "/config.json", "w+") as f:
-#         json.dump(configTemplate, f)
-
-# token = configData["token"]
-# prefix = configData["prefix"]
-
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+with open("token.txt", "r") as f:
+    lines = f.readlines()
+    token = lines[0].strip()
 
 bot = commands.Bot(command_prefix="$")
 
@@ -93,4 +85,4 @@ async def get_users():
         users = json.load(f)
     return users
 
-bot.run("my_token")
+bot.run(token)
