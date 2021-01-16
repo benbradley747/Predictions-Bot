@@ -16,10 +16,10 @@ class Prediction:
         total_points = 0
         total_won = 0
         for bet in self.bets:
-            total_points += bet.amt
+            total_points += int(bet.amt)
             if bet.prediction == result:
                 self.winners.append(bet)
-                total_won += bet.amt
+                total_won += int(bet.amt)
         
         ratio = total_points / total_won
 
@@ -34,12 +34,20 @@ class Prediction:
             return False
         return True
     
-    def build_bets_list(self):
+    def build_bets_list(self, bets):
         bets_list = ""
-        for bet in self.bets:
+        for bet in bets:
             predicted = "yes" if bet.prediction else "no"
             bets_list += str(bet.user.name) + ": " + predicted + ", " + str(bet.amt) + "\n"
         return bets_list
+    
+    def reset_prediction(self):
+        self.prompt = ""
+        self.creator = None
+        self.resolved = False
+        self.bets = []
+        self.users = []
+        self.winners = []
 
 class Bet:
     def __init__(self, amt, predicted, user):
@@ -87,8 +95,9 @@ async def predict(ctx, prompt):
     prediction.prompt = prompt
     prediction.creator = user
 
-    em = discord.Embed(title = f"{prediction.creator.name}'s prediction")
+    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
     em.add_field(name = str(prediction.prompt), value = "No current bets")
+
     await ctx.send(embed = em)
 
 @bot.command()
@@ -100,17 +109,35 @@ async def bet(ctx, result, amt):
         if prediction.check_valid_bet(user):
             prediction.add_bet(bet)
 
-            bets_list = prediction.build_bets_list()
+            bets_list = prediction.build_bets_list(prediction.bets)
             await subtract(user, amt)
+            result_string = "Active" if prediction.resolved == False else "Completed"
 
-            em = discord.Embed(title = f"{prediction.creator.name}'s bet")
+            em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
             em.add_field(name = str(prediction.prompt), value = bets_list)
+            
             await ctx.send(f"{user.name} bet " + str(amt))
             await ctx.send(embed = em)
         else:
             await ctx.send("You cannot bet twice")
     else:
         await ctx.send("Insufficent funds")
+
+@bot.command()
+async def result(ctx, conc):
+    user = ctx.author
+    result = True if conc == "yes" else False
+    result_string = "Active" if prediction.resolved == False else "Completed"
+    prediction.resolve(result)
+    winners_list = prediction.build_bets_list(prediction.winners)
+
+    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
+    em.add_field(name = "Winners", value = winners_list)
+
+    await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
+    await ctx.send(embed = em)
+
+    prediction.reset_prediction()
 
 # Helper methods
 @bot.command()
@@ -121,9 +148,6 @@ async def add(ctx, amt: int):
         users = await get_users()
 
         users[str(user.id)]["wallet"] += amt
-
-        if users[str(user.id)]["wallet"] < 0:
-            users[str(user.id)]["wallet"] = 0
 
         with open("bank.json", "w") as f:
             json.dump(users, f)
