@@ -60,21 +60,37 @@ class Bet:
             self.prediction = True
         self.user = user
 
+# Global stuff
+prefix = "$"
+prediction = Prediction("", None)
+daily_reward: int = 500
+time_intervals = (
+    ('hours', 3600),
+    ('minutes', 60),
+    ('seconds', 1),
+)
+
+# Set up
+bot = commands.Bot(command_prefix=prefix)
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 with open("token.txt", "r") as f:
     lines = f.readlines()
     token = lines[0].strip()
 
-bot = commands.Bot(command_prefix="$")
-prediction = Prediction("", None)
-
+# Events
 @bot.event
 async def on_ready():
     print("Logged in as:")
     print(bot.user.name)
     print(bot.user.id)
     print("Bot is ready")
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f"This command is on cooldown, you can use it again in {display_time(int(error.retry_after))}")
 
 # Commands
 @bot.command()
@@ -139,8 +155,19 @@ async def result(ctx, conc):
 
     prediction.reset_prediction()
 
-# Helper methods
 @bot.command()
+@commands.cooldown(1, 60*60*24, commands.cooldowns.BucketType.user)
+async def daily(ctx):
+    user = ctx.author
+    await open_account(user)
+    users = await get_users()
+
+    users[str(user.id)]["wallet"] += daily_reward
+
+    with open("bank.json", "w") as f:
+        json.dump(users, f)
+
+# Helper methods
 async def add(ctx, amt: int):
     if amt >= 0:
         user = ctx.author
@@ -189,5 +216,17 @@ async def get_users():
     with open("bank.json", "r") as f:
         users = json.load(f)
     return users
+
+def display_time(seconds, granularity=2):
+    result = []
+
+    for name, count in time_intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            if value == 1:
+                name = name.rstrip('s')
+            result.append("{} {}".format(value, name))
+    return ', '.join(result[:granularity])
 
 bot.run(token)
