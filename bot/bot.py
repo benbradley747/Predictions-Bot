@@ -11,18 +11,18 @@ class Prediction:
         self.bets = []
         self.users = []
         self.winners = []
+        self.ratio = 0.0
 
-    def resolve(self, result):
-        total_points = 0
-        total_won = 0
+    def resolve(self, result: bool):
+        total_points = 0.0
+        total_won = 0.0
         for bet in self.bets:
-            total_points += int(bet.amt)
+            total_points += bet.get_amt()
             if bet.prediction == result:
                 self.winners.append(bet)
-                total_won += int(bet.amt)
+                total_won += bet.get_amt()
         
-        ratio = total_points / total_won
-
+        self.ratio = total_points / total_won
         self.resolved = True
 
     def add_bet(self, bet):
@@ -34,11 +34,17 @@ class Prediction:
             return False
         return True
     
-    def build_bets_list(self, bets):
+    def build_bets_list(self, bets, winners: bool):
         bets_list = ""
         for bet in bets:
-            predicted = "yes" if bet.prediction else "no"
-            bets_list += str(bet.user.name) + ": " + predicted + ", " + str(bet.amt) + "\n"
+            if winners:
+                winnings = bet.get_amt() * self.ratio
+                bet.amt = int(winnings)
+                bets_list += str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
+            else:
+                predicted = "yes" if bet.prediction else "no"
+                bets_list += str(bet.user.name) + ": " + predicted + ", " + str(bet.amt) + "\n"
+        
         return bets_list
     
     def reset_prediction(self):
@@ -48,10 +54,11 @@ class Prediction:
         self.bets = []
         self.users = []
         self.winners = []
+        self.ratio = 0.0
 
 class Bet:
     def __init__(self, amt, predicted, user):
-        self.amt = amt
+        self.amt = int(amt)
         if str(predicted) == "yes":
             self.prediction = True
         elif str(predicted) == "no":
@@ -59,6 +66,9 @@ class Bet:
         else:
             self.prediction = True
         self.user = user
+
+    def get_amt(self):
+        return int(self.amt)
 
 # Global stuff
 prefix = "$"
@@ -125,7 +135,7 @@ async def bet(ctx, result, amt):
         if prediction.check_valid_bet(user):
             prediction.add_bet(bet)
 
-            bets_list = prediction.build_bets_list(prediction.bets)
+            bets_list = prediction.build_bets_list(prediction.bets, False)
             await subtract(user, amt)
             result_string = "Active" if prediction.resolved == False else "Completed"
 
@@ -142,16 +152,20 @@ async def bet(ctx, result, amt):
 @bot.command()
 async def result(ctx, conc):
     user = ctx.author
+    users = await get_users()
     result = True if conc == "yes" else False
-    result_string = "Active" if prediction.resolved == False else "Completed"
     prediction.resolve(result)
-    winners_list = prediction.build_bets_list(prediction.winners)
+    winners_list = prediction.build_bets_list(prediction.winners, True)
 
-    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
+    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Completed")
     em.add_field(name = "Winners", value = winners_list)
 
     await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
     await ctx.send(embed = em)
+
+    # add funds to winning accounts
+    for bet in prediction.winners:
+        await add_funds(bet.user, users, bet.amt)
 
     prediction.reset_prediction()
 
@@ -168,6 +182,15 @@ async def daily(ctx):
         json.dump(users, f)
 
 # Helper methods
+async def add_funds(user, users, amt: int):
+    users[str(user.id)]["wallet"] += amt
+
+    with open("bank.json", "w") as f:
+        json.dump(users, f)
+    
+    print("added " + str(amt) + f" to {user.name}'s wallet")
+
+@bot.command()
 async def add(ctx, amt: int):
     if amt >= 0:
         user = ctx.author
