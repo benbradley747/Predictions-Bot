@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import os
 
+# Classes
 class Prediction:
     def __init__(self, prompt, creator):
         self.prompt = str(prompt)
@@ -12,17 +13,16 @@ class Prediction:
         self.users = []
         self.winners = []
         self.ratio = 0.0
+        self.total_pot = 0.0
 
     def resolve(self, result: bool):
-        total_points = 0.0
         total_won = 0.0
         for bet in self.bets:
-            total_points += bet.get_amt()
             if bet.prediction == result:
                 self.winners.append(bet)
                 total_won += bet.get_amt()
-        
-        self.ratio = total_points / total_won
+
+        self.ratio = self.total_pot / (total_won if self.winners else 1.0)
         self.resolved = True
 
     def add_bet(self, bet):
@@ -38,18 +38,29 @@ class Prediction:
         bets_list = ""
         if len(bets) == 0:
             return "No current bets"
+
+        bets.sort(key = lambda x: x.amt, reverse = True)
+        count = 0
         for bet in bets:
+            count += 1
             if winners:
-                if (len(bets) == 0):
-                    bets_list = "Nobody won :("
                 winnings = bet.get_amt() * self.ratio
                 bet.amt = int(winnings)
-                bets_list += str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
+                bets_list += str(count) + ". " + str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
             else:
                 predicted = "yes" if bet.prediction else "no"
                 bets_list += str(bet.user.name) + ": " + predicted + ", " + str(bet.amt) + "\n"
         
         return bets_list
+    
+    def update_total_pot(self, amt):
+        self.total_pot += amt
+
+    def get_total_pot(self):
+        return int(self.total_pot)
+    
+    def get_creator_id(self):
+            return self.creator.id
     
     def reset_prediction(self):
         self.prompt = ""
@@ -59,6 +70,7 @@ class Prediction:
         self.users = []
         self.winners = []
         self.ratio = 0.0
+        self.total_pot = 0.0
 
 class Bet:
     def __init__(self, amt, predicted, user):
@@ -127,6 +139,7 @@ async def predict(ctx, *, prompt):
 
     em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
     em.add_field(name = str(prediction.prompt), value = "No current bets")
+    em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
 
     await ctx.send(embed = em)
 
@@ -138,6 +151,7 @@ async def bet(ctx, amt, result):
     if await check_valid_wallet(user, amt):
         if prediction.check_valid_bet(user):
             prediction.add_bet(bet)
+            prediction.update_total_pot(bet.amt)
 
             bets_list = prediction.build_bets_list(prediction.bets, False)
             await subtract(user, amt)
@@ -145,6 +159,7 @@ async def bet(ctx, amt, result):
 
             em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
             em.add_field(name = str(prediction.prompt), value = bets_list)
+            em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
             
             await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
             await ctx.send(embed = em)
@@ -156,22 +171,26 @@ async def bet(ctx, amt, result):
 @bot.command()
 async def result(ctx, conc):
     user = ctx.author
-    users = await get_users()
-    result = True if conc == "yes" else False
-    prediction.resolve(result)
-    winners_list = prediction.build_bets_list(prediction.winners, True)
+    if user.id == prediction.get_creator_id():
+        users = await get_users()
+        result = True if conc == "yes" else False
+        prediction.resolve(result)
+        if prediction.winners:
+            winners_list = prediction.build_bets_list(prediction.winners, True)
+            for bet in prediction.winners:
+                await add_funds(bet.user, users, bet.amt)
+        else:
+            winners_list = "Nobody won :("
 
-    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Completed")
-    em.add_field(name = "Winners", value = winners_list)
+        em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Completed")
+        em.add_field(name = "Big Winners!", value = winners_list)
 
-    await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
-    await ctx.send(embed = em)
+        await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
+        await ctx.send(embed = em)
 
-    # add funds to winning accounts
-    for bet in prediction.winners:
-        await add_funds(bet.user, users, bet.amt)
-
-    prediction.reset_prediction()
+        prediction.reset_prediction()
+    else:
+        await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can resolve it.")
 
 @bot.command()
 @commands.cooldown(1, 60*60*24, commands.cooldowns.BucketType.user)
@@ -184,6 +203,12 @@ async def daily(ctx):
 
     with open("bank.json", "w") as f:
         json.dump(users, f)
+    
+@bot.command()
+async def leaderboard(ctx):
+    em = discord.Embed(title = "Leaderboard")
+
+    await ctx.send(embed = em)
 
 @bot.command(pass_context = True)
 async def help(ctx):
@@ -244,7 +269,7 @@ async def open_account(user):
         return False
     else:
         users[str(user.id)] = {}
-        users[str(user.id)]["wallet"] = 0
+        users[str(user.id)]["wallet"] = 100
 
     with open("bank.json", "w") as f:
         json.dump(users, f)
