@@ -36,8 +36,12 @@ class Prediction:
     
     def build_bets_list(self, bets, winners: bool):
         bets_list = ""
+        if len(bets) == 0:
+            return "No current bets"
         for bet in bets:
             if winners:
+                if (len(bets) == 0):
+                    bets_list = "Nobody won :("
                 winnings = bet.get_amt() * self.ratio
                 bet.amt = int(winnings)
                 bets_list += str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
@@ -82,7 +86,7 @@ time_intervals = (
 
 # Set up
 bot = commands.Bot(command_prefix=prefix)
-
+bot.remove_command("help")
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 with open("token.txt", "r") as f:
@@ -116,7 +120,7 @@ async def balance(ctx):
     await ctx.send(embed = em)
 
 @bot.command()
-async def predict(ctx, prompt):
+async def predict(ctx, *, prompt):
     user = ctx.author
     prediction.prompt = prompt
     prediction.creator = user
@@ -127,7 +131,7 @@ async def predict(ctx, prompt):
     await ctx.send(embed = em)
 
 @bot.command()
-async def bet(ctx, result, amt):
+async def bet(ctx, amt, result):
     user = ctx.author
     bet = Bet(amt, result, user)
 
@@ -142,7 +146,7 @@ async def bet(ctx, result, amt):
             em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
             em.add_field(name = str(prediction.prompt), value = bets_list)
             
-            await ctx.send(f"{user.name} bet " + str(amt))
+            await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
             await ctx.send(embed = em)
         else:
             await ctx.send("You cannot bet twice")
@@ -180,6 +184,17 @@ async def daily(ctx):
 
     with open("bank.json", "w") as f:
         json.dump(users, f)
+
+@bot.command(pass_context = True)
+async def help(ctx):
+    em = discord.Embed(title = "Help")
+    em.add_field(name = "$balance", value = "Shows your current balance", inline = False)
+    em.add_field(name = "$daily", value = "Gives the author their daily reward", inline = False)
+    em.add_field(name = "$predict <prompt>", value = "Creates a new prediction with the given prompt", inline = False)
+    em.add_field(name = "$bet <yes/no> <amount>", value = "Creates a new yes/no bet with the given amount", inline = False)
+    em.add_field(name = "$result <yes/no>", value = "Resolves the current prediction with yes/no and pays out the winning players", inline = False)
+
+    await ctx.send(embed = em)
 
 # Helper methods
 async def add_funds(user, users, amt: int):
