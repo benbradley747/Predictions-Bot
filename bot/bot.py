@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import os
 
+# Classes
 class Prediction:
     def __init__(self, prompt, creator):
         self.prompt = str(prompt)
@@ -21,8 +22,8 @@ class Prediction:
             if bet.prediction == result:
                 self.winners.append(bet)
                 total_won += bet.get_amt()
-        
-        self.ratio = total_points / total_won
+
+        self.ratio = total_points / (total_won if self.winners else 1.0)
         self.resolved = True
 
     def add_bet(self, bet):
@@ -159,17 +160,18 @@ async def result(ctx, conc):
     users = await get_users()
     result = True if conc == "yes" else False
     prediction.resolve(result)
-    winners_list = prediction.build_bets_list(prediction.winners, True)
+    if prediction.winners:
+        winners_list = prediction.build_bets_list(prediction.winners, True)
+        for bet in prediction.winners:
+            await add_funds(bet.user, users, bet.amt)
+    else:
+        winners_list = "Nobody won :("
 
     em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Completed")
     em.add_field(name = "Winners", value = winners_list)
 
     await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
     await ctx.send(embed = em)
-
-    # add funds to winning accounts
-    for bet in prediction.winners:
-        await add_funds(bet.user, users, bet.amt)
 
     prediction.reset_prediction()
 
@@ -244,7 +246,7 @@ async def open_account(user):
         return False
     else:
         users[str(user.id)] = {}
-        users[str(user.id)]["wallet"] = 0
+        users[str(user.id)]["wallet"] = 100
 
     with open("bank.json", "w") as f:
         json.dump(users, f)
