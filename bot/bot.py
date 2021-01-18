@@ -13,17 +13,17 @@ class Prediction:
         self.users = []
         self.winners = []
         self.ratio = 0.0
+        self.total_pot = 0.0
 
     def resolve(self, result: bool):
-        total_points = 0.0
         total_won = 0.0
         for bet in self.bets:
-            total_points += bet.get_amt()
+            self.total_pot += bet.get_amt()
             if bet.prediction == result:
                 self.winners.append(bet)
                 total_won += bet.get_amt()
 
-        self.ratio = total_points / (total_won if self.winners else 1.0)
+        self.ratio = self.total_pot / (total_won if self.winners else 1.0)
         self.resolved = True
 
     def add_bet(self, bet):
@@ -39,18 +39,23 @@ class Prediction:
         bets_list = ""
         if len(bets) == 0:
             return "No current bets"
+
+        bets.sort(key = lambda x: x.amt)
+        count = 0
         for bet in bets:
+            count += 1
             if winners:
-                if (len(bets) == 0):
-                    bets_list = "Nobody won :("
                 winnings = bet.get_amt() * self.ratio
                 bet.amt = int(winnings)
-                bets_list += str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
+                bets_list += str(count) + ". " + str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
             else:
                 predicted = "yes" if bet.prediction else "no"
                 bets_list += str(bet.user.name) + ": " + predicted + ", " + str(bet.amt) + "\n"
         
         return bets_list
+
+    def get_total_pot(self):
+        return int(self.total_pot)
     
     def reset_prediction(self):
         self.prompt = ""
@@ -128,6 +133,7 @@ async def predict(ctx, *, prompt):
 
     em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
     em.add_field(name = str(prediction.prompt), value = "No current bets")
+    em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
 
     await ctx.send(embed = em)
 
@@ -146,6 +152,7 @@ async def bet(ctx, amt, result):
 
             em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
             em.add_field(name = str(prediction.prompt), value = bets_list)
+            em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
             
             await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
             await ctx.send(embed = em)
@@ -168,7 +175,7 @@ async def result(ctx, conc):
         winners_list = "Nobody won :("
 
     em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Completed")
-    em.add_field(name = "Winners", value = winners_list)
+    em.add_field(name = "Big Winners!", value = winners_list)
 
     await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
     await ctx.send(embed = em)
