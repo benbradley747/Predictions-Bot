@@ -217,7 +217,7 @@ async def help(ctx):
     em.add_field(name = "$daily", value = "Gives the author their daily reward", inline = False)
     em.add_field(name = "$predict <prompt>", value = "Creates a new prediction with the given prompt", inline = False)
     em.add_field(name = "$bet <yes/no> <amount>", value = "Creates a new yes/no bet with the given amount", inline = False)
-    em.add_field(name = "$result <yes/no>", value = "Resolves the current prediction with yes/no and pays out the winning players", inline = False)
+    em.add_field(name = "$result <yes/no>", value = "Resolves your current prediction with yes/no and pays out the winning players", inline = False)
 
     await ctx.send(embed = em)
 
@@ -265,10 +265,13 @@ async def check_valid_wallet(user, amt_removed):
 async def open_account(user):
     users = await get_users()
 
-    if str(user.id) in users:
+    if users[str(user.id)]["name"] == "":
+        users[str(user.id)]["name"] = str(user.name)
+    elif str(user.id) in users:
         return False
     else:
         users[str(user.id)] = {}
+        users[str(user.id)]["name"] = str(user.name)
         users[str(user.id)]["wallet"] = 100
 
     with open("bank.json", "w") as f:
