@@ -66,6 +66,7 @@ class Prediction:
         self.prompt = ""
         self.creator = None
         self.resolved = False
+        self.active = False
         self.bets = []
         self.users = []
         self.winners = []
@@ -133,40 +134,46 @@ async def balance(ctx):
 
 @bot.command()
 async def predict(ctx, *, prompt):
-    user = ctx.author
-    prediction.prompt = prompt
-    prediction.creator = user
+    if prediction.prompt == "":
+        user = ctx.author
+        prediction.prompt = prompt
+        prediction.creator = user
 
-    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
-    em.add_field(name = str(prediction.prompt), value = "No current bets")
-    em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
+        em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
+        em.add_field(name = str(prediction.prompt), value = "No current bets")
+        em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
 
-    await ctx.send(embed = em)
+        await ctx.send(embed = em)
+    else:
+        await ctx.send("You cannot start a new prediction while another is active.")
 
 @bot.command()
 async def bet(ctx, amt, result):
-    user = ctx.author
-    bet = Bet(amt, result, user)
+    if prediction.prompt != "":
+        user = ctx.author
+        bet = Bet(amt, result, user)
 
-    if await check_valid_wallet(user, amt):
-        if prediction.check_valid_bet(user):
-            prediction.add_bet(bet)
-            prediction.update_total_pot(bet.amt)
+        if await check_valid_wallet(user, amt):
+            if prediction.check_valid_bet(user):
+                prediction.add_bet(bet)
+                prediction.update_total_pot(bet.amt)
 
-            bets_list = prediction.build_bets_list(prediction.bets, False)
-            await subtract(user, amt)
-            result_string = "Active" if prediction.resolved == False else "Completed"
+                bets_list = prediction.build_bets_list(prediction.bets, False)
+                await subtract(user, amt)
+                result_string = "Active" if prediction.resolved == False else "Completed"
 
-            em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
-            em.add_field(name = str(prediction.prompt), value = bets_list)
-            em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
+                em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
+                em.add_field(name = str(prediction.prompt), value = bets_list)
+                em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
             
-            await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
-            await ctx.send(embed = em)
+                await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
+                await ctx.send(embed = em)
+            else:
+                await ctx.send("You cannot bet twice")
         else:
-            await ctx.send("You cannot bet twice")
+            await ctx.send("Insufficent funds")
     else:
-        await ctx.send("Insufficent funds")
+        await ctx.send("There is no active prediction to bet on")
 
 @bot.command()
 async def result(ctx, conc):
@@ -265,9 +272,7 @@ async def check_valid_wallet(user, amt_removed):
 async def open_account(user):
     users = await get_users()
 
-    if users[str(user.id)]["name"] == "":
-        users[str(user.id)]["name"] = str(user.name)
-    elif str(user.id) in users:
+    if str(user.id) in users:
         return False
     else:
         users[str(user.id)] = {}
