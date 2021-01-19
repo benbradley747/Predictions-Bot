@@ -19,10 +19,11 @@ time_intervals = (
 bot = commands.Bot(command_prefix=prefix)
 bot.remove_command("help")
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+token = os.getenv("DISCORD_BOT_TOKEN")
 
-with open("token.txt", "r") as f:
-    lines = f.readlines()
-    token = lines[0].strip()
+# with open("token.txt", "r") as f:
+#   lines = f.readlines()
+#   token = lines[0].strip()
 
 # Events
 @bot.event
