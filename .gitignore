@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # Config
-bot/token.txt
+token.txt
 .vscode/

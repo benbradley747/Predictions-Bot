@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-from classes.bet import Bet
-from classes.prediction import Prediction
+from bot.classes.bet import Bet
+from bot.classes.prediction import Prediction
 import json
 import os
 
@@ -138,7 +138,7 @@ async def daily(ctx):
 
     users[str(user.id)]["wallet"] += daily_reward
 
-    await write_data("bank.json", users)
+    await write_data("bot/bank.json", users)
     
 @bot.command()
 async def leaderboard(ctx):
@@ -162,7 +162,7 @@ async def help(ctx):
 async def add_funds(user, users, amt: int):
     users[str(user.id)]["wallet"] += amt
 
-    await write_data("bank.json", users)
+    await write_data("bot/bank.json", users)
     
     print("added " + str(amt) + f" to {user.name}'s wallet")
 
@@ -175,7 +175,7 @@ async def add(ctx, amt: int):
 
         users[str(user.id)]["wallet"] += amt
 
-        await write_data("bank.json", users)
+        await write_data("bot/bank.json", users)
     else:
         await ctx.send("Please input a positive integer")
 
@@ -185,7 +185,7 @@ async def subtract(user, amt):
     new_balance = int(users[str(user.id)]["wallet"]) - int(amt)
 
     users[str(user.id)]["wallet"] = new_balance
-    await write_data("bank.json", users)
+    await write_data("bot/bank.json", users)
 
 async def check_valid_wallet(user, amt_removed):
     await open_account(user)
@@ -202,18 +202,18 @@ async def open_account(user):
     if str(user.id) in users:
         if users[str(user.id)]["name"] == "":
             users[str(user.id)]["name"] = str(user.name)
-            await write_data("bank.json", users)
+            await write_data("bot/bank.json", users)
         return False
     else:
         users[str(user.id)] = {}
         users[str(user.id)]["name"] = str(user.name)
         users[str(user.id)]["wallet"] = 100
 
-    await write_data("bank.json", users)
+    await write_data("bot/bank.json", users)
     return True
 
 async def get_users():
-    with open("bank.json", "r") as f:
+    with open("bot/bank.json", "r") as f:
         users = json.load(f)
     return users
 
