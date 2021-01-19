@@ -4,6 +4,8 @@ from bot.classes.bet import Bet
 from bot.classes.prediction import Prediction
 import json
 import os
+import os.path
+from os import path
 
 # Global stuff
 prefix = "$"
@@ -21,9 +23,10 @@ bot.remove_command("help")
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 token = os.getenv("DISCORD_BOT_TOKEN")
 
-# with open("token.txt", "r") as f:
-#   lines = f.readlines()
-#   token = lines[0].strip()
+if path.exists("token.txt"):
+    with open("token.txt", "r") as f:
+        lines = f.readlines()
+        token = lines[0].strip()
 
 # Events
 @bot.event
