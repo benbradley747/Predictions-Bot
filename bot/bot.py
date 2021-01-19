@@ -1,90 +1,9 @@
 import discord
 from discord.ext import commands
+from classes.bet import Bet
+from classes.prediction import Prediction
 import json
 import os
-
-# Classes
-class Prediction:
-    def __init__(self, prompt, creator):
-        self.prompt = str(prompt)
-        self.creator = creator
-        self.resolved = False
-        self.bets = []
-        self.users = []
-        self.winners = []
-        self.ratio = 0.0
-        self.total_pot = 0.0
-
-    def resolve(self, result: bool):
-        total_won = 0.0
-        for bet in self.bets:
-            if bet.prediction == result:
-                self.winners.append(bet)
-                total_won += bet.get_amt()
-
-        self.ratio = self.total_pot / (total_won if self.winners else 1.0)
-        self.resolved = True
-
-    def add_bet(self, bet):
-        self.bets.append(bet)
-        self.users.append(bet.user)
-
-    def check_valid_bet(self, user):
-        if user in self.users:
-            return False
-        return True
-    
-    def build_bets_list(self, bets, winners: bool):
-        bets_list = ""
-        if len(bets) == 0:
-            return "No current bets"
-
-        bets.sort(key = lambda x: x.amt, reverse = True)
-        count = 0
-        for bet in bets:
-            count += 1
-            if winners:
-                winnings = bet.get_amt() * self.ratio
-                bet.amt = int(winnings)
-                bets_list += str(count) + ". " + str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
-            else:
-                predicted = "yes" if bet.prediction else "no"
-                bets_list += str(bet.user.name) + ": " + predicted + ", " + str(bet.amt) + "\n"
-        
-        return bets_list
-    
-    def update_total_pot(self, amt):
-        self.total_pot += amt
-
-    def get_total_pot(self):
-        return int(self.total_pot)
-    
-    def get_creator_id(self):
-            return self.creator.id
-    
-    def reset_prediction(self):
-        self.prompt = ""
-        self.creator = None
-        self.resolved = False
-        self.bets = []
-        self.users = []
-        self.winners = []
-        self.ratio = 0.0
-        self.total_pot = 0.0
-
-class Bet:
-    def __init__(self, amt, predicted, user):
-        self.amt = int(amt)
-        if str(predicted) == "yes":
-            self.prediction = True
-        elif str(predicted) == "no":
-            self.prediction = False
-        else:
-            self.prediction = True
-        self.user = user
-
-    def get_amt(self):
-        return int(self.amt)
 
 # Global stuff
 prefix = "$"
@@ -133,40 +52,50 @@ async def balance(ctx):
 
 @bot.command()
 async def predict(ctx, *, prompt):
-    user = ctx.author
-    prediction.prompt = prompt
-    prediction.creator = user
+    if prediction.prompt == "":
+        user = ctx.author
+        prediction.prompt = prompt
+        prediction.creator = user
 
-    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
-    em.add_field(name = str(prediction.prompt), value = "No current bets")
-    em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
+        em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
+        em.add_field(name = str(prediction.prompt), value = "No current bets")
+        em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
 
-    await ctx.send(embed = em)
+        await ctx.send(embed = em)
+    else:
+        await ctx.send("You cannot start a new prediction while another is active.")
 
 @bot.command()
 async def bet(ctx, amt, result):
-    user = ctx.author
-    bet = Bet(amt, result, user)
+    if prediction.prompt != "":
+        if not prediction.locked:
+            user = ctx.author
+            bet = Bet(amt, result, user)
 
-    if await check_valid_wallet(user, amt):
-        if prediction.check_valid_bet(user):
-            prediction.add_bet(bet)
-            prediction.update_total_pot(bet.amt)
+            if await check_valid_wallet(user, amt):
+                if prediction.check_valid_bet(user):
+                    prediction.add_bet(bet)
+                    prediction.update_total_pot(bet.amt)
 
-            bets_list = prediction.build_bets_list(prediction.bets, False)
-            await subtract(user, amt)
-            result_string = "Active" if prediction.resolved == False else "Completed"
+                    bets_list = prediction.build_bets_list(prediction.bets, False)
+                    await subtract(user, amt)
+                    status_string = "Active" if prediction.resolved == False else "Completed"
+                    locked_string = "Locked" if prediction.locked == True else "Unlocked"
 
-            em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + result_string)
-            em.add_field(name = str(prediction.prompt), value = bets_list)
-            em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
+                    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + status_string + "\nLocked: " + locked_string)
+                    em.add_field(name = str(prediction.prompt), value = bets_list)
+                    em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
             
-            await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
-            await ctx.send(embed = em)
+                    await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
+                    await ctx.send(embed = em)
+                else:
+                    await ctx.send("You cannot bet twice")
+            else:
+                await ctx.send("Insufficent funds")
         else:
-            await ctx.send("You cannot bet twice")
+            await ctx.send("You cannot place anymore bets on a locked prediction")
     else:
-        await ctx.send("Insufficent funds")
+        await ctx.send("There is no active prediction to bet on")
 
 @bot.command()
 async def result(ctx, conc):
@@ -193,6 +122,14 @@ async def result(ctx, conc):
         await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can resolve it.")
 
 @bot.command()
+async def lock(ctx):
+    user = ctx.author
+    if user.id == prediction.get_creator_id():
+        prediction.locked = True if not prediction.locked else False
+    else:
+        await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can lock it.")
+
+@bot.command()
 @commands.cooldown(1, 60*60*24, commands.cooldowns.BucketType.user)
 async def daily(ctx):
     user = ctx.author
@@ -216,8 +153,9 @@ async def help(ctx):
     em.add_field(name = "$balance", value = "Shows your current balance", inline = False)
     em.add_field(name = "$daily", value = "Gives the author their daily reward", inline = False)
     em.add_field(name = "$predict <prompt>", value = "Creates a new prediction with the given prompt", inline = False)
-    em.add_field(name = "$bet <yes/no> <amount>", value = "Creates a new yes/no bet with the given amount", inline = False)
-    em.add_field(name = "$result <yes/no>", value = "Resolves the current prediction with yes/no and pays out the winning players", inline = False)
+    em.add_field(name = "$bet <amount> <yes/no>", value = "Creates a new yes/no bet with the given amount", inline = False)
+    em.add_field(name = "$lock", value = "Locks the currently active prediction. Predicitions can only be locked by its creator")
+    em.add_field(name = "$result <yes/no>", value = "Resolves your current prediction with yes/no and pays out the winning players", inline = False)
 
     await ctx.send(embed = em)
 
@@ -266,9 +204,14 @@ async def open_account(user):
     users = await get_users()
 
     if str(user.id) in users:
+        if users[str(user.id)]["name"] == "":
+            users[str(user.id)]["name"] = str(user.name)
+            with open("bank.json", "w") as f:
+                json.dump(users, f)
         return False
     else:
         users[str(user.id)] = {}
+        users[str(user.id)]["name"] = str(user.name)
         users[str(user.id)]["wallet"] = 100
 
     with open("bank.json", "w") as f:
