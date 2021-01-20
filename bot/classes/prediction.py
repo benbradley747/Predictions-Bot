@@ -105,7 +105,7 @@ class Prediction:
                 bet.amt = int(winnings)
                 bets_list += str(count) + ". " + str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
             else:
-                bet_string = str(bet.user.name) + ": " + bet.get_predicted() + ", " + str(bet.amt) + "\n"
+                bet_string = str(bet.user.name) + ": " + str(bet.amt) + "\n"
                 if bet.prediction == True:
                     bets_lists[0] += bet_string
                 else:

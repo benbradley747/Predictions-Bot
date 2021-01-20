@@ -105,8 +105,13 @@ async def bet(ctx, amt, result):
                     )
 
                     em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
-                    em.add_field(name = "Yes", value = bets_list[0])
-                    em.add_field(name = "No", value = bets_list[1])
+                    em.add_field(
+                        name = "Yes",
+                        value = "No current bets" if bets_list[0] == "" else bets_list[0]
+                    )
+                    em.add_field(name = "No",
+                        value = "No current bets" if bets_list[1] == "" else bets_list[1]
+                    )
                     em.add_field(name = "Total Pot", value = prediction.get_total_pot(), inline = False)
             
                     await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
