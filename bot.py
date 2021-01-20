@@ -136,6 +136,18 @@ async def lock(ctx):
         prediction.locked = True if not prediction.locked else False
     else:
         await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can lock it.")
+    
+@bot.command()
+async def current(ctx):
+    status_string = "Active" if prediction.resolved == False else "Completed"
+    locked_string = "Locked" if prediction.locked == True else "Unlocked"
+    bets_list = prediction.build_bets_list(prediction.bets, False)
+
+    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + status_string + "\nLocked: " + locked_string)
+    em.add_field(name = str(prediction.prompt), value = bets_list)
+    em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
+
+    await ctx.send(embed = em)
 
 @bot.command()
 @commands.cooldown(1, 60*60*24, commands.cooldowns.BucketType.user)
