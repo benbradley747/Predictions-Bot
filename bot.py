@@ -143,11 +143,11 @@ async def daily(ctx):
     user = ctx.author
     await open_account(user)
     users = await get_users()
-
-    users[str(user.id)]["wallet"] += daily_reward
-
+    await add_funds(user, users, daily_reward)
     await write_data("bot/bank.json", users)
-    
+    await ctx.send(f"{user.name} claimed their daily reward")
+    await balance(ctx)
+
 @bot.command()
 async def leaderboard(ctx):
     em = discord.Embed(title = "Leaderboard")
