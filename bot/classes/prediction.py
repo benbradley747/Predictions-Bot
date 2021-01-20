@@ -37,14 +37,13 @@ class Prediction:
         bets.sort(key = lambda x: x.amt, reverse = True)
         count = 0
         for bet in bets:
-            count += 1
             if winners:
+                count += 1
                 winnings = bet.get_amt() * self.ratio
                 bet.amt = int(winnings)
                 bets_list += str(count) + ". " + str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
             else:
-                predicted = "yes" if bet.prediction else "no"
-                bets_list += str(bet.user.name) + ": " + predicted + ", " + str(bet.amt) + "\n"
+                bets_list += str(bet.user.name) + ": " + bet.get_predicted() + ", " + str(bet.amt) + "\n"
         
         return bets_list
     

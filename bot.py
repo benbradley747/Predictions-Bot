@@ -62,7 +62,7 @@ async def predict(ctx, *, prompt):
         prediction.creator = user
 
         em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
-        em.add_field(name = str(prediction.prompt), value = "No current bets")
+        em.add_field(name = str(prediction.prompt), value = prediction.build_bets_list([], False))
         em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
 
         await ctx.send(embed = em)
@@ -74,6 +74,10 @@ async def bet(ctx, amt, result):
     if prediction.prompt != "":
         if not prediction.locked:
             user = ctx.author
+            if amt == "all-in":
+                users = await get_users()
+                amt = users[str(user.id)]["wallet"]
+                await ctx.send(f"{user.name} is going all in!")
             bet = Bet(amt, result, user)
 
             if await check_valid_wallet(user, amt):
