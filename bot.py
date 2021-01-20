@@ -50,7 +50,10 @@ async def balance(ctx):
 
     wallet_amt = users[str(user.id)]["wallet"]
 
-    em = discord.Embed(title = f"{user.name}'s balance")
+    em = discord.Embed(
+        title = f"{user.name}'s balance"
+    )
+
     em.add_field(name = "Wallet", value = wallet_amt)
     await ctx.send(embed = em)
 
@@ -61,9 +64,14 @@ async def predict(ctx, *, prompt):
         prediction.prompt = prompt
         prediction.creator = user
 
-        em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Active")
-        em.add_field(name = str(prediction.prompt), value = prediction.build_bets_list([], False))
-        em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
+        em = discord.Embed(
+            title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
+            colour = discord.Colour.random()
+        )
+
+        em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
+        em.add_field(name = "Status: Active", value = "No current bets")
+        em.add_field(name = "Total Pot", value = "0", inline = False)
 
         await ctx.send(embed = em)
     else:
@@ -85,14 +93,21 @@ async def bet(ctx, amt, result):
                     prediction.add_bet(bet)
                     prediction.update_total_pot(bet.amt)
 
-                    bets_list = prediction.build_bets_list(prediction.bets, False)
+                    bets_list = prediction.build_bets_list(False)
                     await subtract(user, amt)
                     status_string = "Active" if prediction.resolved == False else "Completed"
                     locked_string = "Locked" if prediction.locked == True else "Unlocked"
 
-                    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + status_string + "\nLocked: " + locked_string)
-                    em.add_field(name = str(prediction.prompt), value = bets_list)
-                    em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
+                    em = discord.Embed(
+                        title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
+                        description = "Status: " + status_string,
+                        colour = discord.Colour.random()
+                    )
+
+                    em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
+                    em.add_field(name = "Yes", value = bets_list[0])
+                    em.add_field(name = "No", value = bets_list[1])
+                    em.add_field(name = "Total Pot", value = prediction.get_total_pot(), inline = False)
             
                     await ctx.send(f"{user.name} bet " + str(amt) + " on " + result)
                     await ctx.send(embed = em)
@@ -119,7 +134,10 @@ async def result(ctx, conc):
         else:
             winners_list = "Nobody won :("
 
-        em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: Completed")
+        em = discord.Embed(
+            title = f"{prediction.creator.name}'s prediction\nStatus: Completed"
+        )
+        
         em.add_field(name = "Big Winners!", value = winners_list)
 
         await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
@@ -143,7 +161,10 @@ async def current(ctx):
     locked_string = "Locked" if prediction.locked == True else "Unlocked"
     bets_list = prediction.build_bets_list(prediction.bets, False)
 
-    em = discord.Embed(title = f"{prediction.creator.name}'s prediction\nStatus: " + status_string + "\nLocked: " + locked_string)
+    em = discord.Embed(
+        title = f"{prediction.creator.name}'s prediction\nStatus: " + status_string + "\nLocked: " + locked_string
+    )
+
     em.add_field(name = str(prediction.prompt), value = bets_list)
     em.add_field(name = "Total Pot", value = str(prediction.get_total_pot()), inline = False)
 
