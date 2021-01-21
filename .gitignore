@@ -131,3 +131,6 @@ dmypy.json
 # Config
 token.txt
 .vscode/
+
+# Bank
+bot/bank.json
