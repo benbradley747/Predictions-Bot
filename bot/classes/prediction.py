@@ -104,6 +104,10 @@ class Prediction:
 
         self.bets.sort(key = lambda x: x.amt, reverse = True)
         count = 0
+
+        if not self.winners:
+            bets_lists[2] = "Nobody won :("
+
         for bet in bets:
             if winners:
                 count += 1

@@ -132,7 +132,7 @@ async def bet(ctx, amt, result):
         else:
             await ctx.send("You cannot place anymore bets on a locked prediction")
     else:
-        await ctx.send("There is no active prediction to bet on")
+        await ctx.send("There is no active prediction to bet on. Start one with $predict!")
 
 @bot.command()
 async def result(ctx, conc):
@@ -141,12 +141,9 @@ async def result(ctx, conc):
         users = await get_users()
         result = True if conc == "yes" else False
         prediction.resolve(result)
-        if prediction.winners:
-            winners_list = prediction.build_bets_list(prediction.winners, True)
-            for bet in prediction.winners:
-                await add_funds(bet.user, users, bet.amt)
-        else:
-            winners_list = "Nobody won :("
+        winners_list = prediction.build_bets_list(prediction.winners, True)
+        for bet in prediction.winners:
+            await add_funds(bet.user, users, bet.amt)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -224,8 +221,8 @@ async def help(ctx):
     em.add_field(name = "$daily", value = "Gives the author their daily reward", inline = False)
     em.add_field(name = "$predict <prompt>", value = "Creates a new prediction with the given prompt", inline = False)
     em.add_field(name = "$bet <amount> <yes/no>", value = "Creates a new yes/no bet with the given amount", inline = False)
-    em.add_field(name = "$current", value = "Shows the current active prediction")
-    em.add_field(name = "$lock", value = "Locks the current active prediction. Predictions can only be locked by its creator")
+    em.add_field(name = "$current", value = "Shows the current active prediction", inline = False)
+    em.add_field(name = "$lock", value = "Locks the current active prediction. Predictions can only be locked by its creator", inline = False)
     em.add_field(name = "$result <yes/no>", value = "Resolves your current prediction with yes/no and pays out the winning players", inline = False)
 
     await ctx.send(embed = em)
