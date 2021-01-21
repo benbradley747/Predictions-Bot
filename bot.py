@@ -220,7 +220,7 @@ async def help(ctx):
     em.add_field(name = "$balance", value = "Shows your current balance", inline = False)
     em.add_field(name = "$daily", value = "Gives the author their daily reward", inline = False)
     em.add_field(name = "$predict <prompt>", value = "Creates a new prediction with the given prompt", inline = False)
-    em.add_field(name = "$bet <amount> <yes/no>", value = "Creates a new yes/no bet with the given amount", inline = False)
+    em.add_field(name = "$bet <amount> <yes/no>", value = "Creates a new yes/no bet with the given amount. Use all-in to bet your whole wallet and risk it all!", inline = False)
     em.add_field(name = "$current", value = "Shows the current active prediction", inline = False)
     em.add_field(name = "$lock", value = "Locks the current active prediction. Predictions can only be locked by its creator", inline = False)
     em.add_field(name = "$result <yes/no>", value = "Resolves your current prediction with yes/no and pays out the winning players", inline = False)
