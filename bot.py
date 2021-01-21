@@ -100,7 +100,7 @@ async def bet(ctx, amt, result):
 
                     em = discord.Embed(
                         title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
-                        description = "Status: " + status_string,
+                        description = "Status: " + status_string + "\nLocked: " + locked_string,
                         colour = discord.Colour.random()
                     )
 
@@ -168,7 +168,7 @@ async def current(ctx):
 
     em = discord.Embed(
         title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
-        description = "Status: " + status_string,
+        description = "Status: " + status_string + "\nLocked: " + locked_string,
         colour = discord.Colour.random()
     )
 
