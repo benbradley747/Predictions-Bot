@@ -11,3 +11,6 @@ class Bet:
 
     def get_amt(self):
         return int(self.amt)
+    
+    def get_predicted(self):
+        return "yes" if self.prediction else "no"
