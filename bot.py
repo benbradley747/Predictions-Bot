@@ -66,11 +66,19 @@ async def predict(ctx, *, prompt):
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
+            description = "Status: Active\nUnlocked 🔓",
             colour = discord.Colour.random()
         )
 
         em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
-        em.add_field(name = "Status: Active", value = "No current bets")
+        em.add_field(
+            name = "Believers",
+            value = "No current bets"
+        )
+        em.add_field(
+            name = "Doubters",
+            value = "No current bets"
+        )
         em.add_field(name = "Total Pot", value = "0", inline = False)
 
         await ctx.send(embed = em)
@@ -95,12 +103,12 @@ async def bet(ctx, amt, result):
 
                     bets_list = prediction.build_bets_list(prediction.bets, False)
                     await subtract(user, amt)
-                    status_string = "Active" if prediction.resolved == False else "Completed"
-                    locked_string = "Locked" if prediction.locked == True else "Unlocked"
+                    status_string = "Active\n" if prediction.resolved == False else "Completed\n"
+                    locked_string = "Locked 🔒" if prediction.locked == True else "Unlocked 🔓"
 
                     em = discord.Embed(
                         title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
-                        description = "Status: " + status_string + "\nLocked: " + locked_string,
+                        description = "Status: " + status_string + locked_string,
                         colour = discord.Colour.random()
                     )
 
@@ -141,10 +149,10 @@ async def result(ctx, conc):
             winners_list = "Nobody won :("
 
         em = discord.Embed(
-                        title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
-                        description = "Status: Resolved",
-                        colour = discord.Colour.random()
-                    )
+            title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
+            description = "Status: Resolved",
+            colour = discord.Colour.random()
+        )
         
         em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
         em.add_field(name = "Big Winners!", value = winners_list[2])
@@ -166,28 +174,31 @@ async def lock(ctx):
     
 @bot.command()
 async def current(ctx):
-    status_string = "Active" if prediction.resolved == False else "Completed"
-    locked_string = "Locked" if prediction.locked == True else "Unlocked"
-    bets_list = prediction.build_bets_list(False)
+    if prediction.prompt != "":
+        status_string = "Active\n" if prediction.resolved == False else "Completed\n"
+        locked_string = "Locked 🔒" if prediction.locked == True else "Unlocked 🔓"
+        bets_list = prediction.build_bets_list(prediction.bets, False)
 
-    em = discord.Embed(
-        title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
-        description = "Status: " + status_string + "\nLocked: " + locked_string,
-        colour = discord.Colour.random()
-    )
+        em = discord.Embed(
+            title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
+            description = "Status: " + status_string + locked_string,
+            colour = discord.Colour.random()
+        )
 
-    em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
-    em.add_field(
-        name = "Yes",
-        value = "No current bets" if bets_list[0] == "" else bets_list[0]
-    )
-    em.add_field(
-        name = "No",
-        value = "No current bets" if bets_list[1] == "" else bets_list[1]
-    )
-    em.add_field(name = "Total Pot", value = prediction.get_total_pot(), inline = False)
+        em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
+        em.add_field(
+            name = "Believers",
+            value = "No current bets" if bets_list[0] == "" else bets_list[0]
+        )
+        em.add_field(
+            name = "Doubters",
+            value = "No current bets" if bets_list[1] == "" else bets_list[1]
+        )
+        em.add_field(name = "Total Pot", value = prediction.get_total_pot(), inline = False)
 
-    await ctx.send(embed = em)
+        await ctx.send(embed = em)
+    else:
+        await ctx.send("There is no current active prediction. Start one using $predict!")
 
 @bot.command()
 @commands.cooldown(1, 60*60*24, commands.cooldowns.BucketType.user)
