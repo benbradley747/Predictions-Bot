@@ -80,7 +80,7 @@ class Prediction:
             return False
         return True
     
-    def build_bets_list(self, winners: bool):
+    def build_bets_list(self, bets, winners: bool):
         """
         Builds a str to represent the current bets on this prediction and returns it.
             - Sorts the list of bets by their amounts.
@@ -94,16 +94,22 @@ class Prediction:
             prediction is being resolved.
         """
 
-        bets_lists = [ "", "" ]
+        # Array with a length of 3, stores yes string, no string, and winners string.
+        # Used when resolving or betting on a prediction. Provides a string to display in the embed
+        #
+        # bets_list[0] = string of users that bet on yes ('User: 100\n', if they bet on yes)
+        # bets_list[1] = string of users that bet on no ('User: 100\n', if they bet on no)
+        # bets_list[2] = string of users that won this prediction ('1. User won 1000!\n')
+        bets_lists = [ "", "", "" ]
 
         self.bets.sort(key = lambda x: x.amt, reverse = True)
         count = 0
-        for bet in self.bets:
+        for bet in bets:
             if winners:
                 count += 1
                 winnings = bet.get_amt() * self.ratio
                 bet.amt = int(winnings)
-                bets_list += str(count) + ". " + str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
+                bets_lists[2] += str(count) + ". " + str(bet.user.name) + " won " + str(bet.get_amt()) + "!\n"
             else:
                 bet_string = str(bet.user.name) + ": " + str(bet.amt) + "\n"
                 if bet.prediction == True:

@@ -93,7 +93,7 @@ async def bet(ctx, amt, result):
                     prediction.add_bet(bet)
                     prediction.update_total_pot(bet.amt)
 
-                    bets_list = prediction.build_bets_list(False)
+                    bets_list = prediction.build_bets_list(prediction.bets, False)
                     await subtract(user, amt)
                     status_string = "Active" if prediction.resolved == False else "Completed"
                     locked_string = "Locked" if prediction.locked == True else "Unlocked"
@@ -106,10 +106,11 @@ async def bet(ctx, amt, result):
 
                     em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
                     em.add_field(
-                        name = "Yes",
+                        name = "Believers",
                         value = "No current bets" if bets_list[0] == "" else bets_list[0]
                     )
-                    em.add_field(name = "No",
+                    em.add_field(
+                        name = "Doubters",
                         value = "No current bets" if bets_list[1] == "" else bets_list[1]
                     )
                     em.add_field(name = "Total Pot", value = prediction.get_total_pot(), inline = False)
@@ -140,10 +141,13 @@ async def result(ctx, conc):
             winners_list = "Nobody won :("
 
         em = discord.Embed(
-            title = f"{prediction.creator.name}'s prediction\nStatus: Completed"
-        )
+                        title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
+                        description = "Status: Resolved",
+                        colour = discord.Colour.random()
+                    )
         
-        em.add_field(name = "Big Winners!", value = winners_list)
+        em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
+        em.add_field(name = "Big Winners!", value = winners_list[2])
 
         await ctx.send(f"{user.name} resolved the bet with result: '" + str(conc) + "'")
         await ctx.send(embed = em)
