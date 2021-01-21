@@ -224,7 +224,8 @@ async def help(ctx):
     em.add_field(name = "$daily", value = "Gives the author their daily reward", inline = False)
     em.add_field(name = "$predict <prompt>", value = "Creates a new prediction with the given prompt", inline = False)
     em.add_field(name = "$bet <amount> <yes/no>", value = "Creates a new yes/no bet with the given amount", inline = False)
-    em.add_field(name = "$lock", value = "Locks the currently active prediction. Predicitions can only be locked by its creator")
+    em.add_field(name = "$current", value = "Shows the current active prediction")
+    em.add_field(name = "$lock", value = "Locks the current active prediction. Predictions can only be locked by its creator")
     em.add_field(name = "$result <yes/no>", value = "Resolves your current prediction with yes/no and pays out the winning players", inline = False)
 
     await ctx.send(embed = em)
