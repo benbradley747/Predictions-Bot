@@ -6,6 +6,9 @@ import json
 import os
 import os.path
 from os import path
+import pymongo
+from pymongo import MongoClient
+from pprint import pprint
 
 # Global stuff
 prefix = "$"
@@ -22,6 +25,19 @@ bot = commands.Bot(command_prefix=prefix)
 bot.remove_command("help")
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 token = os.getenv("DISCORD_BOT_TOKEN")
+
+# MongoDB
+with open("connectionstring.txt", "r") as f:
+    lines = f.readlines()
+    connection_string = lines[0].strip()
+
+mongo_client = pymongo.MongoClient(connection_string)
+db = mongo_client.bank
+database_list = mongo_client.database_names()
+
+june = db.bank.find({"name": "June"})
+print(june)
+print(database_list)
 
 if path.exists("token.txt"):
     with open("token.txt", "r") as f:
