@@ -34,7 +34,11 @@ connection_string = os.getenv("MONGODB_URI")
 #    connection_string = lines[0].strip()
 
 # Create the mongo_client
-mongo_client = pymongo.MongoClient(connection_string)
+try:
+    mongo_client = pymongo.MongoClient(connection_string)
+except Exception as ex:
+    print("Error:", ex)
+    exit("Failed to connect, terminating")
 
 # Open the banks database
 db = mongo_client["banks"]
