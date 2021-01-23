@@ -44,9 +44,6 @@ except Exception as ex:
 db = mongo_client["banks"]
 guild_bank = db["174385883389100032"]
 
-for db in mongo_client.list_databases():
-    print(db)
-
 # Events
 @bot.event
 async def on_ready():
