@@ -8,7 +8,6 @@ import os.path
 from os import path
 import pymongo
 from pymongo import MongoClient
-from pprint import pprint
 
 # Global stuff
 prefix = "$"
