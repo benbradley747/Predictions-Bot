@@ -23,26 +23,30 @@ time_intervals = (
 # Set up
 bot = commands.Bot(command_prefix=prefix)
 bot.remove_command("help")
+guild_ids = []
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 token = os.getenv("DISCORD_BOT_TOKEN")
-
-# MongoDB
-with open("connectionstring.txt", "r") as f:
-    lines = f.readlines()
-    connection_string = lines[0].strip()
-
-mongo_client = pymongo.MongoClient(connection_string)
-db = mongo_client.bank
-database_list = mongo_client.database_names()
-
-june = db.bank.find({"name": "June"})
-print(june)
-print(database_list)
 
 if path.exists("token.txt"):
     with open("token.txt", "r") as f:
         lines = f.readlines()
         token = lines[0].strip()
+
+# MongoDB
+# Fetch connection string
+with open("connectionstring.txt", "r") as f:
+    lines = f.readlines()
+    connection_string = lines[0].strip()
+
+# Create the mongo_client
+mongo_client = pymongo.MongoClient(connection_string)
+
+# Open the banks database
+db = mongo_client["banks"]
+guild_bank = db["174385883389100032"]
+
+for db in mongo_client.list_databases():
+    print(db)
 
 # Events
 @bot.event
@@ -58,13 +62,17 @@ async def on_command_error(ctx, error):
         await ctx.send(f"This command is on cooldown, you can use it again in {display_time(int(error.retry_after))}")
 
 # Commands
+@bot.command(pass_context=True)
+async def getguild(ctx):
+    id = ctx.message.guild.id
+    await ctx.send(id)
+
 @bot.command()
 async def balance(ctx):
     user = ctx.author
     await open_account(user)
-    users = await get_users()
 
-    wallet_amt = users[str(user.id)]["wallet"]
+    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"]
 
     em = discord.Embed(
         title = f"{user.name}'s balance"
@@ -108,7 +116,7 @@ async def bet(ctx, amt, result):
             user = ctx.author
             if amt == "all-in":
                 users = await get_users()
-                amt = users[str(user.id)]["wallet"]
+                amt = guild_bank.find_one({"id": user.id})["wallet"]
                 await ctx.send(f"{user.name} is going all in!")
             bet = Bet(amt, result, user)
 
@@ -118,7 +126,7 @@ async def bet(ctx, amt, result):
                     prediction.update_total_pot(bet.amt)
 
                     bets_list = prediction.build_bets_list(prediction.bets, False)
-                    await subtract(user, amt)
+                    await subtract(user, int(amt))
                     status_string = "Active\n" if prediction.resolved == False else "Completed\n"
                     locked_string = "Locked 🔒" if prediction.locked == True else "Unlocked 🔓"
 
@@ -159,7 +167,7 @@ async def result(ctx, conc):
         prediction.resolve(result)
         winners_list = prediction.build_bets_list(prediction.winners, True)
         for bet in prediction.winners:
-            await add_funds(bet.user, users, bet.amt)
+            add_funds(bet.user, bet.amt)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -218,9 +226,7 @@ async def current(ctx):
 async def daily(ctx):
     user = ctx.author
     await open_account(user)
-    users = await get_users()
-    await add_funds(user, users, daily_reward)
-    await write_data("bot/bank.json", users)
+    add_funds(user, daily_reward)
     await ctx.send(f"{user.name} claimed their daily reward")
     await balance(ctx)
 
@@ -243,64 +249,60 @@ async def help(ctx):
 
     await ctx.send(embed = em)
 
-# Helper methods
-async def add_funds(user, users, amt: int):
-    users[str(user.id)]["wallet"] += amt
-
-    await write_data("bot/bank.json", users)
+def add_funds(user, amt: int):
+    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"]
+    wallet_amt += amt
+    guild_bank.update_one(
+        {"id": user.id},
+        { "$set": {
+            "wallet": wallet_amt 
+            }
+        } 
+    )
     
     print("added " + str(amt) + f" to {user.name}'s wallet")
 
 @bot.command()
 async def add(ctx, amt: int):
-    if amt >= 0:
-        user = ctx.author
-        await open_account(user)
-        users = await get_users()
+    user = ctx.author
+    add_funds(user, amt)
 
-        users[str(user.id)]["wallet"] += amt
-
-        await write_data("bot/bank.json", users)
-    else:
-        await ctx.send("Please input a positive integer")
-
-async def subtract(user, amt):
+async def subtract(user, amt: int):
     await open_account(user)
-    users = await get_users()
-    new_balance = int(users[str(user.id)]["wallet"]) - int(amt)
-
-    users[str(user.id)]["wallet"] = new_balance
-    await write_data("bot/bank.json", users)
+    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"]
+    wallet_amt -= int(amt)
+    guild_bank.update_one(
+        {"id": user.id},
+        { "$set": {
+            "wallet": wallet_amt 
+            }
+        }
+    )
 
 async def check_valid_wallet(user, amt_removed):
     await open_account(user)
-    users = await get_users()
 
-    if int(amt_removed) > int(users[str(user.id)]["wallet"]):
+    if int(amt_removed) > guild_bank.find_one({"id": user.id})["wallet"]:
         return False
-    else:
-        return True
+    return True
 
 async def open_account(user):
-    users = await get_users()
-
-    if str(user.id) in users:
-        if users[str(user.id)]["name"] == "":
-            users[str(user.id)]["name"] = str(user.name)
-            await write_data("bot/bank.json", users)
+    # If the database already has account information for this user, return false.
+    # Else, insert a new document with this user's account information
+    if guild_bank.count_documents({"id": user.id}) > 0:
         return False
     else:
-        users[str(user.id)] = {}
-        users[str(user.id)]["name"] = str(user.name)
-        users[str(user.id)]["wallet"] = 100
+        payload = {
+            "id": user.id,
+            "name": str(user.name),
+            "wallet": 500
+        }
 
-    await write_data("bot/bank.json", users)
+        guild_bank.insert_one(payload)
     return True
 
 async def get_users():
-    with open("bot/bank.json", "r") as f:
-        users = json.load(f)
-    return users
+    return guild_bank.find({})
 
 async def write_data(file, data):
     with open(file, "w") as f:
