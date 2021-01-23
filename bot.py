@@ -26,6 +26,7 @@ bot.remove_command("help")
 guild_ids = []
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 token = os.getenv("DISCORD_BOT_TOKEN")
+connection_string = os.getenv("MONGODB_URI")
 
 if path.exists("token.txt"):
     with open("token.txt", "r") as f:
@@ -34,9 +35,9 @@ if path.exists("token.txt"):
 
 # MongoDB
 # Fetch connection string
-with open("connectionstring.txt", "r") as f:
-    lines = f.readlines()
-    connection_string = lines[0].strip()
+# with open("connectionstring.txt", "r") as f:
+#    lines = f.readlines()
+#    connection_string = lines[0].strip()
 
 # Create the mongo_client
 mongo_client = pymongo.MongoClient(connection_string)
