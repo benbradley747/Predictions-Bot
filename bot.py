@@ -240,17 +240,27 @@ async def leaderboard(ctx):
     
     sorted_docs = guild_bank.find().sort("wallet", -1)
     count = 0
-    leaderboard = ""
+    names = ""
+    scores = ""
 
     for doc in sorted_docs:
+        count += 1
         if count < 10:
-            count += 1
-            leaderboard += str(count) + ". " + doc["name"] + ": " + str(doc["wallet"]) + "\n"
-        print(doc)
+            names +=  "`0" + str(count) + ".` " + doc["name"] + "\n"
+            scores += "`" + str(doc["wallet"]) + "`\n"
+        elif count == 10:
+            names += "`10.` " + doc["name"] + "\n"
+            scores += "`" + str(doc["wallet"]) + "`\n"
+        else: 
+            break
     
-    em = discord.Embed(title = "Leaderboard")
-    em.add_field(name = "Test", value = leaderboard)
-
+    em = discord.Embed(
+        title = "Leaderboard",
+        colour = discord.Colour.random()
+    )
+    em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/803105644604555305/150.png")
+    em.add_field(name = "Players", value = names)
+    em.add_field(name = "Score", value = scores)
     await ctx.send(embed = em)
 
 @bot.command(pass_context = True)
@@ -336,20 +346,5 @@ def display_time(seconds, granularity=2):
                 name = name.rstrip('s')
             result.append("{} {}".format(value, name))
     return ', '.join(result[:granularity])
-
-def build_leaderboard(sorted_docs):
-    # 01.🥇 
-    # 02.🥈
-    # 03.🥉
-    
-    leaderboard = ""
-
-    count = 0
-    for doc in sorted_docs:
-        if count < 10:
-            count += 1
-            leaderboard += str(count) + doc["name"] + ": " + str(doc["wallet"]) + "\n"
-
-    return leaderboard
 
 bot.run(token)
