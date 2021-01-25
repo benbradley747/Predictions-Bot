@@ -236,8 +236,7 @@ async def daily(ctx):
     await balance(ctx)
 
 @bot.command()
-async def leaderboard(ctx):
-    
+async def leaderboard(ctx):   
     sorted_docs = guild_bank.find().sort("wallet", -1)
     count = 0
     names = ""
@@ -260,6 +259,7 @@ async def leaderboard(ctx):
     )
     em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/803105644604555305/150.png")
     em.add_field(name = "Players", value = names)
+    em.add_field(name = "\u200b", value = "\u200b")
     em.add_field(name = "Score", value = scores)
     await ctx.send(embed = em)
 
@@ -277,14 +277,16 @@ async def help(ctx):
     await ctx.send(embed = em)
 
 def add_funds(user, amt: int):
-    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"]
-    wallet_amt += amt
+    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] + amt
+    bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"] + 1
+
     guild_bank.update_one(
         {"id": user.id},
         { "$set": {
-            "wallet": wallet_amt 
+            "wallet": wallet_amt,
+            "bets_won": bets_won_amt 
             }
-        } 
+        }
     )
     
     print("added " + str(amt) + f" to {user.name}'s wallet")
@@ -295,13 +297,11 @@ async def add(ctx, amt: int):
     add_funds(user, amt)
 
 async def subtract(user, amt: int):
-    await open_account(user)
-    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"]
-    wallet_amt -= int(amt)
+    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] - amt
     guild_bank.update_one(
         {"id": user.id},
         { "$set": {
-            "wallet": wallet_amt 
+            "wallet": wallet_amt
             }
         }
     )
@@ -323,7 +323,7 @@ async def open_account(user):
             "id": user.id,
             "name": str(user.name),
             "wallet": 500,
-            "bets-won": 0
+            "bets_won": 0
         }
 
         guild_bank.insert_one(payload)
