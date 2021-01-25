@@ -322,7 +322,8 @@ async def open_account(user):
         payload = {
             "id": user.id,
             "name": str(user.name),
-            "wallet": 500
+            "wallet": 500,
+            "bets-won": 0
         }
 
         guild_bank.insert_one(payload)
