@@ -171,8 +171,10 @@ async def result(ctx, conc):
         result = True if conc == "yes" else False
         prediction.resolve(result)
         winners_list = prediction.build_bets_list(prediction.winners, True)
-        for bet in prediction.winners:
-            add_funds(bet.user, bet.amt)
+
+        if len(prediction.winners) > 1:
+            for bet in prediction.winners:
+                add_funds(bet.user, bet.amt)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -238,18 +240,23 @@ async def daily(ctx):
 @bot.command()
 async def leaderboard(ctx):   
     sorted_docs = guild_bank.find().sort("wallet", -1)
+    
     count = 0
     names = ""
     scores = ""
+    bets_won = ""
 
     for doc in sorted_docs:
         count += 1
         if count < 10:
             names +=  "`0" + str(count) + ".` " + doc["name"] + "\n"
             scores += "`" + str(doc["wallet"]) + "`\n"
+            bets_won += "`" + str(doc["bets_won"]) + "`" + "\n"
         elif count == 10:
-            names += "`10.` " + doc["name"] + "\n"
-            scores += "`" + str(doc["wallet"]) + "`\n"
+            names += "`10.` " + doc["name"]
+            scores += "`" + str(doc["wallet"]) + "`"
+            bets_won += "`" + str(doc["bets_won"]) + "`"
+
         else: 
             break
     
@@ -257,10 +264,10 @@ async def leaderboard(ctx):
         title = "Leaderboard",
         colour = discord.Colour.random()
     )
-    em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/803105644604555305/150.png")
-    em.add_field(name = "Players", value = names)
-    em.add_field(name = "\u200b", value = "\u200b")
-    em.add_field(name = "Score", value = scores)
+    # em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/803105644604555305/150.png")
+    em.add_field(name = "Players", value = names, inline = True)
+    em.add_field(name = "Score", value = scores, inline = True)
+    em.add_field(name = "Bets Won", value = bets_won, inline = True)
     await ctx.send(embed = em)
 
 @bot.command(pass_context = True)
