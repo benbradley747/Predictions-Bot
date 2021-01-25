@@ -284,9 +284,11 @@ async def help(ctx):
 
     await ctx.send(embed = em)
 
-def add_funds(user, amt: int):
+def add_funds(user, amt: int, bet_won):
     wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] + amt
-    bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"] + 1
+    bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"]
+    if bet_won:
+        bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"] + 1
 
     guild_bank.update_one(
         {"id": user.id},
