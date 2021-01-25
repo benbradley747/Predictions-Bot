@@ -174,7 +174,7 @@ async def result(ctx, conc):
 
         if len(prediction.winners) > 1:
             for bet in prediction.winners:
-                add_funds(bet.user, bet.amt)
+                add_funds(bet.user, bet.amt, True)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -233,7 +233,7 @@ async def current(ctx):
 async def daily(ctx):
     user = ctx.author
     await open_account(user)
-    add_funds(user, daily_reward)
+    add_funds(user, daily_reward, False)
     await ctx.send(f"{user.name} claimed their daily reward")
     await balance(ctx)
 
@@ -304,7 +304,7 @@ def add_funds(user, amt: int, bet_won):
 @bot.command()
 async def add(ctx, amt: int):
     user = ctx.author
-    add_funds(user, amt)
+    add_funds(user, amt, False)
 
 async def subtract(user, amt: int):
     wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] - amt
