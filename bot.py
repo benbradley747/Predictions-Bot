@@ -24,15 +24,21 @@ bot = commands.Bot(command_prefix=prefix)
 bot.remove_command("help")
 guild_ids = []
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-token = os.getenv("DISCORD_BOT_TOKEN")
-connection_string = os.getenv("MONGODB_URI")
+
+# Checks for token and connection string if using testing app
+if path.exists("token.txt"):
+    with open("token.txt", "r") as f:
+        token = f.readline()
+else:
+    token = os.getenv("DISCORD_BOT_TOKEN")
+
+if path.exists("connectionstring.txt"):
+    with open("connectionstring.txt", "r") as f:
+        connection_string = f.readline()
+else:
+    connection_string = os.getenv("MONGODB_URI")
 
 # MongoDB
-# Fetch connection string
-# with open("connectionstring.txt", "r") as f:
-#    lines = f.readlines()
-#    connection_string = lines[0].strip()
-
 # Create the mongo_client
 try:
     mongo_client = pymongo.MongoClient(connection_string)
@@ -162,8 +168,10 @@ async def result(ctx, conc):
         result = True if conc == "yes" else False
         prediction.resolve(result)
         winners_list = prediction.build_bets_list(prediction.winners, True)
-        for bet in prediction.winners:
-            add_funds(bet.user, bet.amt)
+
+        if len(prediction.winners) > 1:
+            for bet in prediction.winners:
+                add_funds(bet.user, bet.amt)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -227,9 +235,36 @@ async def daily(ctx):
     await balance(ctx)
 
 @bot.command()
-async def leaderboard(ctx):
-    em = discord.Embed(title = "Leaderboard")
+async def leaderboard(ctx):   
+    sorted_docs = guild_bank.find().sort("wallet", -1)
+    
+    count = 0
+    names = ""
+    scores = ""
+    bets_won = ""
 
+    for doc in sorted_docs:
+        count += 1
+        if count < 10:
+            names +=  "`0" + str(count) + ".` " + doc["name"] + "\n"
+            scores += "`" + str(doc["wallet"]) + "`\n"
+            bets_won += "`" + str(doc["bets_won"]) + "`" + "\n"
+        elif count == 10:
+            names += "`10.` " + doc["name"]
+            scores += "`" + str(doc["wallet"]) + "`"
+            bets_won += "`" + str(doc["bets_won"]) + "`"
+
+        else: 
+            break
+    
+    em = discord.Embed(
+        title = "Leaderboard",
+        colour = discord.Colour.random()
+    )
+    # em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/803105644604555305/150.png")
+    em.add_field(name = "Players", value = names, inline = True)
+    em.add_field(name = "Score", value = scores, inline = True)
+    em.add_field(name = "Bets Won", value = bets_won, inline = True)
     await ctx.send(embed = em)
 
 @bot.command(pass_context = True)
@@ -246,14 +281,16 @@ async def help(ctx):
     await ctx.send(embed = em)
 
 def add_funds(user, amt: int):
-    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"]
-    wallet_amt += amt
+    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] + amt
+    bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"] + 1
+
     guild_bank.update_one(
         {"id": user.id},
         { "$set": {
-            "wallet": wallet_amt 
+            "wallet": wallet_amt,
+            "bets_won": bets_won_amt 
             }
-        } 
+        }
     )
     
     print("added " + str(amt) + f" to {user.name}'s wallet")
@@ -264,13 +301,11 @@ async def add(ctx, amt: int):
     add_funds(user, amt)
 
 async def subtract(user, amt: int):
-    await open_account(user)
-    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"]
-    wallet_amt -= int(amt)
+    wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] - amt
     guild_bank.update_one(
         {"id": user.id},
         { "$set": {
-            "wallet": wallet_amt 
+            "wallet": wallet_amt
             }
         }
     )
@@ -291,7 +326,8 @@ async def open_account(user):
         payload = {
             "id": user.id,
             "name": str(user.name),
-            "wallet": 500
+            "wallet": 500,
+            "bets_won": 0
         }
 
         guild_bank.insert_one(payload)
