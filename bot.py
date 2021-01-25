@@ -24,15 +24,21 @@ bot = commands.Bot(command_prefix=prefix)
 bot.remove_command("help")
 guild_ids = []
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-token = os.getenv("DISCORD_BOT_TOKEN")
-connection_string = os.getenv("MONGODB_URI")
+
+# Checks for token and connection string if using testing app
+if path.exists("token.txt"):
+    with open("token.txt", "r") as f:
+        token = f.readline()
+else:
+    token = os.getenv("DISCORD_BOT_TOKEN")
+
+if path.exists("connectionstring.txt"):
+    with open("connectionstring.txt", "r") as f:
+        connection_string = f.readline()
+else:
+    connection_string = os.getenv("MONGODB_URI")
 
 # MongoDB
-# Fetch connection string
-# with open("connectionstring.txt", "r") as f:
-#    lines = f.readlines()
-#    connection_string = lines[0].strip()
-
 # Create the mongo_client
 try:
     mongo_client = pymongo.MongoClient(connection_string)
@@ -231,7 +237,19 @@ async def daily(ctx):
 
 @bot.command()
 async def leaderboard(ctx):
+    
+    sorted_docs = guild_bank.find().sort("wallet", -1)
+    count = 0
+    leaderboard = ""
+
+    for doc in sorted_docs:
+        if count < 10:
+            count += 1
+            leaderboard += str(count) + ". " + doc["name"] + ": " + str(doc["wallet"]) + "\n"
+        print(doc)
+    
     em = discord.Embed(title = "Leaderboard")
+    em.add_field(name = "Test", value = leaderboard)
 
     await ctx.send(embed = em)
 
@@ -318,5 +336,20 @@ def display_time(seconds, granularity=2):
                 name = name.rstrip('s')
             result.append("{} {}".format(value, name))
     return ', '.join(result[:granularity])
+
+def build_leaderboard(sorted_docs):
+    # 01.🥇 
+    # 02.🥈
+    # 03.🥉
+    
+    leaderboard = ""
+
+    count = 0
+    for doc in sorted_docs:
+        if count < 10:
+            count += 1
+            leaderboard += str(count) + doc["name"] + ": " + str(doc["wallet"]) + "\n"
+
+    return leaderboard
 
 bot.run(token)
