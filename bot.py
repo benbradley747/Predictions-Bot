@@ -277,12 +277,15 @@ async def help(ctx):
     em.add_field(name = "$current", value = "Shows the current active prediction", inline = False)
     em.add_field(name = "$lock", value = "Locks the current active prediction. Predictions can only be locked by its creator", inline = False)
     em.add_field(name = "$result <yes/no>", value = "Resolves your current prediction with yes/no and pays out the winning players", inline = False)
+    em.add_field(name = "$leaderboard", walue = "Shows a leaderboard of the top 10 players on the server", inline = False)
 
     await ctx.send(embed = em)
 
-def add_funds(user, amt: int):
+def add_funds(user, amt: int, bet_won):
     wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] + amt
-    bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"] + 1
+    bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"]
+    if bet_won:
+        bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"] + 1
 
     guild_bank.update_one(
         {"id": user.id},
