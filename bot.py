@@ -167,9 +167,10 @@ async def result(ctx, conc):
         users = await get_users()
         result = True if conc == "yes" else False
         prediction.resolve(result)
+
         winners_list = prediction.build_bets_list(prediction.winners, True)
 
-        if len(prediction.winners) > 1:
+        if len(prediction.bets) > 1:
             for bet in prediction.winners:
                 add_funds(bet.user, bet.amt, True)
 
