@@ -173,6 +173,8 @@ async def result(ctx, conc):
         if len(prediction.bets) > 1:
             for bet in prediction.winners:
                 add_funds(bet.user, bet.amt, True)
+        else:
+            add_funds(prediction.bets[0].user, prediction.bets[0].amt, False)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
