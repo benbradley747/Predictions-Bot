@@ -95,7 +95,7 @@ async def predict(ctx, *, prompt):
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
-            description = "Status: Active\nUnlocked 🔓",
+            description = "Status: Active 🔄\nUnlocked 🔓",
             colour = discord.Colour.random()
         )
 
@@ -132,7 +132,7 @@ async def bet(ctx, amt, result):
 
                     bets_list = prediction.build_bets_list(prediction.bets, False)
                     await subtract(user, int(amt))
-                    status_string = "Active\n" if prediction.resolved == False else "Completed\n"
+                    status_string = "Active 🔄\n" if prediction.resolved == False else "Completed\n"
                     locked_string = "Locked 🔒" if prediction.locked == True else "Unlocked 🔓"
 
                     em = discord.Embed(
@@ -181,7 +181,7 @@ async def result(ctx, conc):
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
-            description = "Status: Resolved",
+            description = "Status: Resolved ✅",
             colour = discord.Colour.random()
         )
         
@@ -202,11 +202,52 @@ async def lock(ctx):
         prediction.locked = True if not prediction.locked else False
     else:
         await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can lock it.")
+
+@bot.command()
+async def cancel(ctx):
+    user = ctx.author
+
+    if prediction.prompt != "":
+        if user.id == prediction.get_creator_id():
+            
+            await ctx.send(prediction.creator.name + " cancelled their prediction")
+
+            status_string = "Canceled 🚫\n"
+            locked_string = "Locked 🔒" if prediction.locked == True else "Unlocked 🔓"
+            bets_list = prediction.build_bets_list(prediction.bets, False)
+
+            em = discord.Embed(
+                title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
+                description = "Status: " + status_string + locked_string,
+                colour = discord.Colour.random()
+            )
+
+            em.set_thumbnail(url="https://cdn.discordapp.com/attachments/799651569943183360/801330005820964914/casino-gambling.jpg")
+            em.add_field(
+                name = "Believers",
+                value = "No current bets" if bets_list[0] == "" else bets_list[0]
+            )
+            em.add_field(
+                name = "Doubters",
+                value = "No current bets" if bets_list[1] == "" else bets_list[1]
+            )
+            em.add_field(name = "Total Pot", value = prediction.get_total_pot(), inline = False)
+
+            await ctx.send(embed = em)
+
+            for bet in prediction.bets:
+                add_funds(bet.user, bet.amt, False)
+            
+            prediction.reset_prediction()
+        else:
+            await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can cancel it.")
+    else:
+        await ctx.send("There is no active prediction to bet on. Start one with $predict!")
     
 @bot.command()
 async def current(ctx):
     if prediction.prompt != "":
-        status_string = "Active\n" if prediction.resolved == False else "Completed\n"
+        status_string = "Active 🔄\n" if prediction.resolved == False else "Completed ✅\n"
         locked_string = "Locked 🔒" if prediction.locked == True else "Unlocked 🔓"
         bets_list = prediction.build_bets_list(prediction.bets, False)
 
