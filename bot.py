@@ -19,6 +19,11 @@ time_intervals = (
     ('seconds', 1),
 )
 
+ranks = [
+    { "amt": 5000, "name": "Gambling Novice" },
+    { "amt": 10000, "name": "Gambling Intermediate" }
+]
+
 # Set up
 bot = commands.Bot(command_prefix=prefix)
 bot.remove_command("help")
@@ -48,7 +53,7 @@ except Exception as ex:
 
 # Open the banks database
 db = mongo_client["banks"]
-guild_bank = db["174385883389100032"]
+guild_bank = db["799651406884896800"]
 
 for db in mongo_client.list_databases():
     print(db)
@@ -175,9 +180,9 @@ async def result(ctx, conc):
 
         if len(prediction.bets) > 1:
             for bet in prediction.winners:
-                add_funds(bet.user, bet.amt, True)
+                await add_funds(ctx, bet.user, bet.amt, True)
         else:
-            add_funds(prediction.bets[0].user, prediction.bets[0].amt, False)
+            await add_funds(ctx, prediction.bets[0].user, prediction.bets[0].amt, False)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -236,7 +241,7 @@ async def cancel(ctx):
             await ctx.send(embed = em)
 
             for bet in prediction.bets:
-                add_funds(bet.user, bet.amt, False)
+                await add_funds(ctx, bet.user, bet.amt, False)
             
             prediction.reset_prediction()
         else:
@@ -277,7 +282,7 @@ async def current(ctx):
 async def daily(ctx):
     user = ctx.author
     await open_account(user)
-    add_funds(user, daily_reward, False)
+    await add_funds(ctx, user, daily_reward, False)
     await ctx.send(f"{user.name} claimed their daily reward")
     await balance(ctx)
 
@@ -314,6 +319,9 @@ async def leaderboard(ctx):
     em.add_field(name = "Bets Won", value = bets_won, inline = True)
     await ctx.send(embed = em)
 
+async def giverole(ctx, author: discord.Member, role: discord.Role):
+    await author.add_roles(role)
+
 @bot.command(pass_context = True)
 async def help(ctx):
     em = discord.Embed(title = "Help")
@@ -329,17 +337,23 @@ async def help(ctx):
 
     await ctx.send(embed = em)
 
-def add_funds(user, amt: int, bet_won):
+async def add_funds(ctx, user: discord.Member, amt: int, bet_won: bool):
     wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] + amt
-    bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"]
+    amt_bets_won = guild_bank.find_one({"id": user.id})["bets_won"]
     if bet_won:
-        bets_won_amt = guild_bank.find_one({"id": user.id})["bets_won"] + 1
+        amt_bets_won = guild_bank.find_one({"id": user.id})["bets_won"] + 1
+
+    for rank in ranks:
+        if wallet_amt >= rank["amt"]:
+            role = discord.utils.get(ctx.guild.roles, name = rank["name"])
+            await giverole(ctx, user, role)
+            await ctx.send(f"{user.name} has achieved {rank['name']}!")
 
     guild_bank.update_one(
         {"id": user.id},
         { "$set": {
             "wallet": wallet_amt,
-            "bets_won": bets_won_amt 
+            "bets_won": amt_bets_won
             }
         }
     )
@@ -349,7 +363,7 @@ def add_funds(user, amt: int, bet_won):
 @bot.command()
 async def add(ctx, amt: int):
     user = ctx.author
-    add_funds(user, amt, False)
+    await add_funds(ctx, user, amt, False)
 
 async def subtract(user, amt: int):
     wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] - amt
