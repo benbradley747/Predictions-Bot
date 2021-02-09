@@ -343,11 +343,6 @@ def add_funds(user, amt: int, bet_won):
     
     print("added " + str(amt) + f" to {user.name}'s wallet")
 
-@bot.command()
-async def add(ctx, amt: int):
-    user = ctx.author
-    add_funds(user, amt, False)
-
 async def subtract(user, amt: int):
     wallet_amt = guild_bank.find_one({"id": user.id})["wallet"] - amt
     guild_bank.update_one(
