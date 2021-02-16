@@ -174,7 +174,8 @@ async def result(ctx, conc):
             for bet in prediction.winners:
                 add_funds(bet.user, bet.amt, True)
         else:
-            add_funds(prediction.bets[0].user, prediction.bets[0].amt, False)
+            if len(prediction.bets) != 0:
+                add_funds(prediction.bets[0].user, prediction.bets[0].amt, False)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -233,13 +234,28 @@ async def cancel(ctx):
             await ctx.send(embed = em)
 
             for bet in prediction.bets:
-                add_funds(bet.user, bet.amt, False)
+                await add_funds(bet.user, bet.amt, False)
             
             prediction.reset_prediction()
         else:
             await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can cancel it.")
     else:
         await ctx.send("There is no active prediction to bet on. Start one with $predict!")
+
+@bot.command()
+async def abandon(ctx):
+    abandoner = ctx.author
+
+    if (abandoner in prediction.users):  
+        for bet in prediction.bets:
+            if bet.user == abandoner:
+                add_funds(abandoner, bet.amt, False)
+
+        prediction.abandon_bet(abandoner)
+        await ctx.send(f"{abandoner.name} has abandonded their bet.")
+        await current(ctx)
+    else:
+        await ctx.send("You can't abandon a bet you haven't made. Make one with $bet!")
     
 @bot.command()
 async def current(ctx):
@@ -322,6 +338,7 @@ async def help(ctx):
     em.add_field(name = "$lock", value = "Locks the current active prediction. Predictions can only be locked by its creator", inline = False)
     em.add_field(name = "$result <yes/no>", value = "Resolves your current prediction with yes/no and pays out the winning players", inline = False)
     em.add_field(name = "$cancel", value = "Cancels the current prediction and refunds players", inline = False)
+    em.add_field(name = "$abandon", value = "Abandons your current bet on a prediction", inline = False)
     em.add_field(name = "$leaderboard", value = "Shows a leaderboard of the top 10 players on the server", inline = False)
 
     await ctx.send(embed = em)
