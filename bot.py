@@ -234,7 +234,7 @@ async def cancel(ctx):
             await ctx.send(embed = em)
 
             for bet in prediction.bets:
-                await add_funds(bet.user, bet.amt, False)
+                add_funds(bet.user, bet.amt, False)
             
             prediction.reset_prediction()
         else:
