@@ -172,10 +172,10 @@ async def result(ctx, conc):
 
         if len(prediction.bets) > 1:
             for bet in prediction.winners:
-                add_funds(bet.user, bet.amt, True)
+                await add_funds(bet.user, bet.amt, True)
         else:
             if len(prediction.bets) != 0:
-                add_funds(prediction.bets[0].user, prediction.bets[0].amt, False)
+                await add_funds(prediction.bets[0].user, prediction.bets[0].amt, False)
 
         em = discord.Embed(
             title = f"{prediction.creator.name}'s prediction\n" + prediction.prompt,
@@ -234,7 +234,7 @@ async def cancel(ctx):
             await ctx.send(embed = em)
 
             for bet in prediction.bets:
-                add_funds(bet.user, bet.amt, False)
+                await add_funds(bet.user, bet.amt, False)
             
             prediction.reset_prediction()
         else:
@@ -249,7 +249,7 @@ async def abandon(ctx):
     if (abandoner in prediction.users):  
         for bet in prediction.bets:
             if bet.user == abandoner:
-                add_funds(abandoner, bet.amt, False)
+                await add_funds(abandoner, bet.amt, False)
 
         prediction.abandon_bet(abandoner)
         await ctx.send(f"{abandoner.name} has abandonded their bet.")
@@ -290,7 +290,7 @@ async def current(ctx):
 async def daily(ctx):
     user = ctx.author
     await open_account(user)
-    add_funds(user, daily_reward, False)
+    await add_funds(user, daily_reward, False)
     await ctx.send(f"{user.name} claimed their daily reward")
     await balance(ctx)
 
