@@ -198,6 +198,7 @@ async def lock(ctx):
     user = ctx.author
     if user.id == prediction.get_creator_id():
         prediction.locked = True if not prediction.locked else False
+        await ctx.send(f"{user.name} locked the betting!")
     else:
         await ctx.send("Only the creator of this prediction (" + prediction.creator.name + ") can lock it.")
 

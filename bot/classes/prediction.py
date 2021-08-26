@@ -78,6 +78,7 @@ class Prediction:
 
         if user in self.users:
             return False
+            
         return True
     
     def build_bets_list(self, bets, winners: bool):
