@@ -252,6 +252,7 @@ async def abandon(ctx):
                 await add_funds(abandoner, bet.amt, False)
 
         prediction.abandon_bet(abandoner)
+        prediction.users.remove(abandoner)
         await ctx.send(f"{abandoner.name} has abandonded their bet.")
         await current(ctx)
     else:

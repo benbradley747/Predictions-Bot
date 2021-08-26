@@ -138,6 +138,7 @@ class Prediction:
         """ Removes a bet from the list of bets on this prediction """
         self.bets = [bet for bet in self.bets if bet.user != abandoner]
 
+
     # Getters/Setters/Updaters
     def update_total_pot(self, amt):
         self.total_pot += amt
